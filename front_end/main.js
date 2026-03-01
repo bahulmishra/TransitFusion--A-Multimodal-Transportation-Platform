@@ -60,9 +60,11 @@ function setupEventListeners() {
     document.getElementById('btn-clear-map').addEventListener('click', clearMap);
     document.getElementById('btn-clear-xml').addEventListener('click', clearXmlLog);
 
-    // Feature Click logic for Vector Features
+    // Feature Click logic for Vector (WFS) and Image (WMS) Features
     map.on('singleclick', function (evt) {
         let featureFound = false;
+
+        // 1. Try to find Vector Features (WFS) natively first
         map.forEachFeatureAtPixel(evt.pixel, function (feature, layer) {
             featureFound = true;
             const properties = feature.getProperties();
@@ -78,11 +80,57 @@ function setupEventListeners() {
             xmlString += `</Feature>`;
 
             document.getElementById('xml-raw-display').textContent = xmlString;
-            document.getElementById('xml-summary').innerHTML = `<strong>Status:</strong> Clicked Feature ID: ${id}. Attribute properties auto-generated to XML below.`;
-            return true;
-        }, { hitTolerance: 5 });
+            document.getElementById('xml-summary').innerHTML = `<strong>Status:</strong> Clicked Vector Feature ID: ${id}. Attribute properties auto-generated to XML below.`;
+            return true; // Stop searching once we find one
+        }, { hitTolerance: 10 }); // High hit tolerance for easy clicking of points/lines
 
-        if (!featureFound) {
+        if (featureFound) return;
+
+        // 2. If no Vector feature was clicked, try fetching WMS GetFeatureInfo for visible WMS layers
+        const viewResolution = map.getView().getResolution();
+        const viewProjection = map.getView().getProjection();
+
+        // Find visible Image (WMS) layers on the map
+        const visibleImageLayers = overlayLayers.filter(l => l instanceof ol.layer.Image && l.getVisible());
+
+        let urlFound = false;
+
+        // We only check the first (top-most) visible WMS layer to avoid chaotic multiple requests
+        for (let layer of visibleImageLayers) {
+            const source = layer.getSource();
+            if (source && typeof source.getFeatureInfoUrl === 'function') {
+                const url = source.getFeatureInfoUrl(
+                    evt.coordinate,
+                    viewResolution,
+                    viewProjection,
+                    {
+                        'INFO_FORMAT': 'text/xml', // GeoServer supports this to return GML/XML attributes
+                        'FEATURE_COUNT': 1
+                    }
+                );
+
+                if (url) {
+                    urlFound = true;
+                    document.getElementById('xml-summary').innerHTML = `<strong>Status:</strong> Fetching details from WMS Server...`;
+                    document.getElementById('xml-raw-display').textContent = 'Loading...';
+
+                    fetch(url)
+                        .then(response => response.text())
+                        .then(text => {
+                            document.getElementById('xml-raw-display').textContent = text;
+                            document.getElementById('xml-summary').innerHTML = `<strong>Status:</strong> Clicked WMS Feature. Extracted GetFeatureInfo XML data below.`;
+                        })
+                        .catch(err => {
+                            clearXmlLog();
+                            console.error('GetFeatureInfo Error:', err);
+                        });
+                    break;
+                }
+            }
+        }
+
+        // 3. If neither WFS nor WMS has a feature to show, clear the log
+        if (!featureFound && !urlFound) {
             clearXmlLog();
         }
     });
