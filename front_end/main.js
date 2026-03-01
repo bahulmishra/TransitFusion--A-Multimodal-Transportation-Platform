@@ -58,7 +58,10 @@ function setupEventListeners() {
     document.getElementById('btn-get-cap').addEventListener('click', fetchCapabilities);
     document.getElementById('btn-run-query').addEventListener('click', runQuery);
     document.getElementById('btn-clear-map').addEventListener('click', clearMap);
-    document.getElementById('btn-clear-xml').addEventListener('click', clearXmlLog);
+    const clearBtn = document.getElementById('btn-clear-xml');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', clearXmlLog);
+        }
 
     // Feature Click logic for Vector (WFS) and Image (WMS) Features
     map.on('singleclick', function (evt) {
