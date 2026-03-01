@@ -60,9 +60,8 @@ function setupEventListeners() {
     document.getElementById('btn-clear-map').addEventListener('click', clearMap);
     document.getElementById('btn-clear-xml').addEventListener('click', clearXmlLog);
 
-    // Feature Click logic for WFS Features
+    // Feature Click logic for Vector Features
     map.on('singleclick', function (evt) {
-        if (currentService !== 'WFS') return;
         let featureFound = false;
         map.forEachFeatureAtPixel(evt.pixel, function (feature, layer) {
             featureFound = true;
@@ -79,20 +78,19 @@ function setupEventListeners() {
             xmlString += `</Feature>`;
 
             document.getElementById('xml-raw-display').textContent = xmlString;
-            document.getElementById('xml-summary').innerHTML = `<strong>Status:</strong> Clicked WFS Feature ID: ${id}. Attribute properties auto-generated to XML below.`;
+            document.getElementById('xml-summary').innerHTML = `<strong>Status:</strong> Clicked Feature ID: ${id}. Attribute properties auto-generated to XML below.`;
             return true;
-        });
+        }, { hitTolerance: 5 });
 
         if (!featureFound) {
             clearXmlLog();
         }
     });
 
-    // Change cursor on hover for WFS features
+    // Change cursor on hover for Vector features
     map.on('pointermove', function (evt) {
         if (evt.dragging) return;
-        if (currentService !== 'WFS') return;
-        const hit = map.hasFeatureAtPixel(evt.pixel);
+        const hit = map.hasFeatureAtPixel(evt.pixel, { hitTolerance: 5 });
         map.getTargetElement().style.cursor = hit ? 'pointer' : '';
     });
 }
