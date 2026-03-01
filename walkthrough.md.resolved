@@ -1,0 +1,39 @@
+# Walkthrough: Interoperable Web GIS Client
+
+The Interoperable Web GIS Client has been successfully implemented according to your requirements. Since this project is a purely frontend solution without a backend framework, it relies on HTML, CSS, and vanilla JS to deliver a dynamic interface using OpenLayers.
+
+## Changes Made
+
+### 1. Project Structure & Layout
+- Created [index.html](file:///e:/code/25m0317/TransitFusion/TransitFusion--A-Multimodal-Transportation-Platform/front_end/index.html) with a modern 3-panel layout.
+- Linked OpenLayers via CDN (`ol.js` and `ol.css`).
+- Created [style.css](file:///e:/code/25m0317/TransitFusion/TransitFusion--A-Multimodal-Transportation-Platform/front_end/style.css) matching a clean, modern desktop application look with cohesive spacing, color schemes, and interactive hover feedback. 
+
+### 2. User Interface Panel (Sidebar)
+- Prominent service toggles (WMS / WFS) which dynamically update the input area.
+- Auto-collapsing list for layers populated dynamically based on GetCapabilities XML.
+- Dynamically hiding/showing request parameters. For example:
+  - Format list updates to show image formats for WMS and JSON formats for WFS.
+  - "Size" inputs (width x height) are hidden when WFS is active, as they don't apply.
+
+### 3. Application Logic ([main.js](file:///e:/code/25m0317/TransitFusion/TransitFusion--A-Multimodal-Transportation-Platform/front_end/main.js))
+- **OpenLayers**: Initializes a base map using OpenStreetMap defaulting to `EPSG:4326`.
+- **GetCapabilities**: 
+  - On clicking "Get Capabilities", the app fetches the data via [fetch()](file:///e:/code/25m0317/TransitFusion/TransitFusion--A-Multimodal-Transportation-Platform/front_end/main.js#82-148).
+  - It parses the raw XML utilizing JavaScript's `DOMParser`.
+  - Display extracts bounding boxes (`EX_GeographicBoundingBox`, `LatLonBoundingBox`, or `WGS84BoundingBox` depending on the service) alongside layer Names and Titles.
+  - Selecting layers in the sidebar visually pulls their bounding box and auto-fills the Bounding Box inputs into the form for easy querying.
+- **Rendering Queries**:
+  - **WMS**: Constructs an `ol.layer.Image` with `ol.source.ImageWMS`. OpenLayers handles the underlying `GetMap` URL generation and map syncing.
+  - **WFS**: Builds a `GetFeature` URL and feeds it to `ol.layer.Vector` expecting GeoJSON. Randomly generates styles for differentiating features visually.
+- **XML Panel**:
+  - Tracks every action's status.
+  - Displays the raw GetCapabilities response text.
+  - Features clear buttons to tidy the interface.
+- **Error Handling**: Implemented built-in alerts for failing to fetch XML or when parsing throws an error, especially helpful for catching CORS policy rejections on local GeoServers.
+
+## How to Test and Run
+1. Ensure your local GeoServer has [CORS Enabled](https://docs.geoserver.org/stable/en/user/production/container.html#enable-cors) in Tomcat (`web.xml`). Alternatively, use a browser extension that allows CORS for local testing.
+2. Ensure you have WMS and WFS enabled on the GeoServer.
+3. Open [index.html](file:///e:/code/25m0317/TransitFusion/TransitFusion--A-Multimodal-Transportation-Platform/front_end/index.html) either directly in your preferred web browser, or host it locally through an HTTP extension like "Live Server" in VSCode or deploying the whole folder to Apache Tomcat.
+4. Input your `http://localhost:8080/geoserver/wms` (or `wfs`) URL, request capabilities, check several layers, and click **Run Query**.
