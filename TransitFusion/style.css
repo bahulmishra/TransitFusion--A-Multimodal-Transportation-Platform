@@ -403,7 +403,7 @@ select:focus {
 }
 
 .xml-parsed-summary strong {
-    color: #60a5fa;
+    color: #eaf0f7;
 }
 
 .xml-raw {
@@ -412,7 +412,7 @@ select:focus {
     overflow: auto;
     font-family: 'Fira Code', 'Courier New', Courier, monospace;
     font-size: 0.85rem;
-    color: #a78bfa;
+    color: #ffffff;
     white-space: pre-wrap;
     word-break: break-all;
     margin: 0;
@@ -435,9 +435,63 @@ select:focus {
 /* OpenLayers overrides */
 .ol-control button {
     background-color: var(--primary-color) !important;
-    color: white !important;
+    color: rgb(15, 14, 14) !important;
 }
 
 .ol-control button:hover {
+    background-color: var(--primary-hover) !important;
+}
+
+/* Custom Controls Positioning */
+
+/* Scale Bar at Bottom Left */
+.ol-scale-line {
+    background: rgba(15, 23, 42, 0.8) !important;
+    /* Matches our dark theme */
+    border-radius: 4px;
+    bottom: 20px !important;
+    left: 20px !important;
+    padding: 5px;
+}
+
+.ol-scale-bar-inner {
+    border-color: var(--text-muted);
+}
+
+.ol-scale-step-text {
+    color: black;
+}
+
+.ol-scale-step-marker {
+    background-color: var(--text-muted);
+}
+
+/* North Arrow at Top Right */
+.custom-north-arrow {
+    top: 20px !important;
+    right: 20px !important;
+    left: auto !important;
+    /* Override default left positioning */
+    background: rgba(15, 23, 42, 0.8) !important;
+    border-radius: 4px;
+    padding: 2px;
+}
+
+.custom-north-arrow button {
+    width: 36px !important;
+    height: 36px !important;
+    font-size: 1.2rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--primary-color) !important;
+    color: rgb(20, 17, 28) !important;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.custom-north-arrow button:hover {
     background-color: var(--primary-hover) !important;
 }

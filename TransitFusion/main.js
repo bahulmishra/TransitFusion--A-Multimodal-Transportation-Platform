@@ -21,7 +21,23 @@ function initMap() {
             center: [0, 0],
             zoom: 2,
             projection: 'EPSG:4326' // Using EPSG:4326 to align with standard GeoServer/WMS bounds easily
-        })
+        }),
+        controls: ol.control.defaults.defaults({
+            rotate: false // Disable default rotate to add custom our north arrow
+        }).extend([
+            new ol.control.ScaleLine({
+                units: 'metric',
+                bar: true,
+                steps: 4,
+                text: true,
+                minWidth: 140
+            }),
+            new ol.control.Rotate({
+                autoHide: false,
+                label: '⬆ N', // Simple text-based north marker, or could be an icon/SVG
+                className: 'custom-north-arrow ol-control'
+            })
+        ])
     });
 }
 
