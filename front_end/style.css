@@ -472,7 +472,7 @@ select:focus {
     right: 20px !important;
     left: auto !important;
     /* Override default left positioning */
-    background: rgba(15, 23, 42, 0.8) !important;
+    background: rgba(228, 231, 237, 0.8) !important;
     border-radius: 4px;
     padding: 2px;
 }
@@ -486,7 +486,7 @@ select:focus {
     align-items: center;
     justify-content: center;
     background-color: var(--primary-color) !important;
-    color: white !important;
+    color: rgb(16, 0, 0) !important;
     border-radius: 4px;
     cursor: pointer;
     transition: var(--transition);
