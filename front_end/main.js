@@ -60,13 +60,10 @@ function setupEventListeners() {
     document.getElementById('btn-clear-map').addEventListener('click', clearMap);
     document.getElementById('btn-clear-xml').addEventListener('click', clearXmlLog);
 
-    // Feature Hover (pointermove) logic for WFS Features
-    map.on('pointermove', function (evt) {
-        if (evt.dragging) return;
+    // Feature Click logic for WFS Features
+    map.on('singleclick', function (evt) {
         if (currentService !== 'WFS') return;
-
         let featureFound = false;
-
         map.forEachFeatureAtPixel(evt.pixel, function (feature, layer) {
             featureFound = true;
             const properties = feature.getProperties();
@@ -82,18 +79,21 @@ function setupEventListeners() {
             xmlString += `</Feature>`;
 
             document.getElementById('xml-raw-display').textContent = xmlString;
-            document.getElementById('xml-summary').innerHTML = `<strong>Status:</strong> Pointing at WFS Feature ID: ${id}. Attribute properties auto-generated to XML below.`;
+            document.getElementById('xml-summary').innerHTML = `<strong>Status:</strong> Clicked WFS Feature ID: ${id}. Attribute properties auto-generated to XML below.`;
             return true;
         });
 
+        if (!featureFound) {
+            clearXmlLog();
+        }
+    });
+
+    // Change cursor on hover for WFS features
+    map.on('pointermove', function (evt) {
+        if (evt.dragging) return;
+        if (currentService !== 'WFS') return;
         const hit = map.hasFeatureAtPixel(evt.pixel);
         map.getTargetElement().style.cursor = hit ? 'pointer' : '';
-
-        if (!featureFound) {
-            if (document.getElementById('xml-summary').textContent.includes('Pointing at')) {
-                clearXmlLog();
-            }
-        }
     });
 }
 
