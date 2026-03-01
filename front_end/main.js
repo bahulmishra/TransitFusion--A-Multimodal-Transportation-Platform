@@ -59,6 +59,42 @@ function setupEventListeners() {
     document.getElementById('btn-run-query').addEventListener('click', runQuery);
     document.getElementById('btn-clear-map').addEventListener('click', clearMap);
     document.getElementById('btn-clear-xml').addEventListener('click', clearXmlLog);
+
+    // Feature Hover (pointermove) logic for WFS Features
+    map.on('pointermove', function (evt) {
+        if (evt.dragging) return;
+        if (currentService !== 'WFS') return;
+
+        let featureFound = false;
+
+        map.forEachFeatureAtPixel(evt.pixel, function (feature, layer) {
+            featureFound = true;
+            const properties = feature.getProperties();
+            const geometryName = feature.getGeometryName();
+            const id = feature.getId() || 'unknown';
+
+            let xmlString = `<?xml version="1.0" encoding="UTF-8"?>\n<Feature id="${id}">\n`;
+            for (const key in properties) {
+                if (key !== geometryName && typeof properties[key] !== 'object') {
+                    xmlString += `  <${key}>${properties[key]}</${key}>\n`;
+                }
+            }
+            xmlString += `</Feature>`;
+
+            document.getElementById('xml-raw-display').textContent = xmlString;
+            document.getElementById('xml-summary').innerHTML = `<strong>Status:</strong> Pointing at WFS Feature ID: ${id}. Attribute properties auto-generated to XML below.`;
+            return true;
+        });
+
+        const hit = map.hasFeatureAtPixel(evt.pixel);
+        map.getTargetElement().style.cursor = hit ? 'pointer' : '';
+
+        if (!featureFound) {
+            if (document.getElementById('xml-summary').textContent.includes('Pointing at')) {
+                clearXmlLog();
+            }
+        }
+    });
 }
 
 function setService(service) {
@@ -326,6 +362,9 @@ function runQuery() {
 
     const layerNames = Array.from(checkboxes).map(c => c.value);
 
+    // Clear previous layers to only show the selected one
+    clearMap();
+
     if (currentService === 'WMS') {
         runWMSQuery(baseUrl, layerNames);
     } else {
@@ -337,29 +376,31 @@ function runWMSQuery(baseUrl, layerNames) {
     const format = document.getElementById('param-format').value;
     const srs = document.getElementById('param-srs').value;
 
-    // Determine bounds if user put any implicitly (OpenLayers ImageWMS generates its own based on the window view)
-    // The wms layer will use the OL auto bbox mechanism based on the projection
+    // Loop through requested layer names and create an individual OL Image layer for each
+    // This allows them to be individually toggled in the layer switcher box
+    layerNames.forEach(layerName => {
+        const wmsSource = new ol.source.ImageWMS({
+            url: baseUrl,
+            params: {
+                'LAYERS': layerName,
+                'FORMAT': format,
+                'SRS': srs
+            },
+            ratio: 1,
+            serverType: 'geoserver' // Ensures vendor-params optimized for GeoServer
+        });
 
-    const wmsSource = new ol.source.ImageWMS({
-        url: baseUrl,
-        params: {
-            'LAYERS': layerNames.join(','),
-            'FORMAT': format,
-            'SRS': srs
-        },
-        ratio: 1,
-        serverType: 'geoserver' // Ensures vendor-params optimized for GeoServer
+        const wmsLayer = new ol.layer.Image({
+            source: wmsSource,
+            opacity: 0.8
+        });
+
+        map.addLayer(wmsLayer);
+        overlayLayers.push(wmsLayer);
+        addLayerToSwitcher(layerName, wmsLayer);
     });
 
-    const wmsLayer = new ol.layer.Image({
-        source: wmsSource,
-        opacity: 0.8
-    });
-
-    map.addLayer(wmsLayer);
-    overlayLayers.push(wmsLayer);
-
-    document.getElementById('xml-summary').innerHTML = `<strong>Status:</strong> Added WMS Image Layer containing [${layerNames.join(', ')}] with format ${format}`;
+    document.getElementById('xml-summary').innerHTML = `<strong>Status:</strong> Added WMS Image Layers: [${layerNames.join(', ')}] with format ${format}`;
 }
 
 async function runWFSQuery(baseUrl, layerNames) {
@@ -418,6 +459,7 @@ async function runWFSQuery(baseUrl, layerNames) {
 
             map.addLayer(vectorLayer);
             overlayLayers.push(vectorLayer);
+            addLayerToSwitcher(layerName, vectorLayer);
         }
 
         document.getElementById('xml-summary').innerHTML = `<strong>Status:</strong> Successfully requested WFS Vector Layer(s). Features will appear shortly if valid geometries are returned.`;
@@ -436,6 +478,10 @@ function clearMap() {
     });
     overlayLayers = [];
     document.getElementById('xml-summary').innerHTML = `<strong>Status:</strong> Map overlays cleared.`;
+
+    // Clear the layer switcher overlay
+    document.getElementById('layer-switcher-content').innerHTML = '';
+    document.getElementById('layer-switcher').classList.add('hidden');
 }
 
 function clearXmlLog() {
@@ -451,4 +497,39 @@ function showLoader(show) {
     } else {
         loader.classList.add('hidden');
     }
+}
+
+// Map overlay Layer Switcher Logic
+function addLayerToSwitcher(title, layer) {
+    const switcher = document.getElementById('layer-switcher');
+    const content = document.getElementById('layer-switcher-content');
+
+    switcher.classList.remove('hidden');
+
+    const label = document.createElement('label');
+    label.className = 'switcher-item';
+
+    const switchDiv = document.createElement('div');
+    switchDiv.className = 'toggle-switch';
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = true; // Layers are visible by default
+    checkbox.addEventListener('change', (e) => {
+        layer.setVisible(e.target.checked);
+    });
+
+    const slider = document.createElement('span');
+    slider.className = 'slider';
+
+    switchDiv.appendChild(checkbox);
+    switchDiv.appendChild(slider);
+
+    const titleSpan = document.createElement('span');
+    titleSpan.className = 'layer-title';
+    titleSpan.textContent = title;
+
+    label.appendChild(switchDiv);
+    label.appendChild(titleSpan);
+    content.appendChild(label);
 }
