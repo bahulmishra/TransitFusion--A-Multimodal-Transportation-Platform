@@ -354,41 +354,11 @@ select:focus {
     min-height: 200px;
 }
 
-.xml-header {
-    padding: 10px 20px;
-    background-color: var(--bg-panel);
-    border-bottom: 1px solid var(--border-color);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.xml-header h3 {
-    font-size: 0.95rem;
-    font-weight: 500;
-    color: var(--text-muted);
-}
-
-.small-btn {
-    padding: 5px 10px;
-    background-color: var(--bg-input);
-    color: var(--text-main);
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.8rem;
-    transition: var(--transition);
-}
-
-.small-btn:hover {
-    background-color: var(--border-color);
-}
-
 .xml-content-wrapper {
     flex: 1;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow-y: hidden;
 }
 
 .xml-parsed-summary {
@@ -399,6 +369,7 @@ select:focus {
     line-height: 1.5;
     color: #93c5fd;
     max-height: 100px;
+    /* Or arbitrary height to leave room for the raw text */
     overflow-y: auto;
 }
 
@@ -406,10 +377,16 @@ select:focus {
     color: #eaf0f7;
 }
 
-.xml-raw {
+.xml-content-wrapper pre {
     flex: 1;
+    overflow-y: auto;
+    margin: 0;
+    min-height: 0;
+}
+
+.xml-raw {
     padding: 20px;
-    overflow: auto;
+    display: block;
     font-family: 'Fira Code', 'Courier New', Courier, monospace;
     font-size: 0.85rem;
     color: #ffffff;
@@ -418,17 +395,18 @@ select:focus {
     margin: 0;
 }
 
-.xml-raw::-webkit-scrollbar {
+/* Scrollbars for pre tag */
+.xml-content-wrapper pre::-webkit-scrollbar {
     width: 8px;
     height: 8px;
 }
 
-.xml-raw::-webkit-scrollbar-thumb {
+.xml-content-wrapper pre::-webkit-scrollbar-thumb {
     background: #4b5563;
     border-radius: 4px;
 }
 
-.xml-raw::-webkit-scrollbar-corner {
+.xml-content-wrapper pre::-webkit-scrollbar-corner {
     background: transparent;
 }
 
