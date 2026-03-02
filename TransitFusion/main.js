@@ -424,6 +424,8 @@ function runQuery() {
 function runWMSQuery(baseUrl, layerNames) {
     const format = document.getElementById('param-format').value;
     const srs = document.getElementById('param-srs').value;
+    // We ignore fixed width/height for the interactive map to prevent blurring on zoom/pan.
+    // OpenLayers will dynamically request the correct width & height for the current screen size.
     const width = document.getElementById('size-width').value || 768;
     const height = document.getElementById('size-height').value || 500;
 
@@ -435,29 +437,21 @@ function runWMSQuery(baseUrl, layerNames) {
     let extent = undefined;
     if (!isNaN(minx) && !isNaN(miny) && !isNaN(maxx) && !isNaN(maxy)) {
         extent = [minx, miny, maxx, maxy];
-    } else {
-        // Fallback to a global extent if bbox is empty (though it should be autocompleted)
-        extent = [-180, -90, 180, 90];
     }
 
     layerNames.forEach(layerName => {
-        // Construct the exact GetMap URL to strictly honor the user's Size and BBox parameters
-        const url = new URL(baseUrl);
-        url.searchParams.set('SERVICE', 'WMS');
-        url.searchParams.set('VERSION', '1.1.1');
-        url.searchParams.set('REQUEST', 'GetMap');
-        url.searchParams.set('FORMAT', format);
-        url.searchParams.set('TRANSPARENT', 'true');
-        url.searchParams.set('LAYERS', layerName);
-        url.searchParams.set('SRS', srs);
-        url.searchParams.set('WIDTH', width);
-        url.searchParams.set('HEIGHT', height);
-        url.searchParams.set('BBOX', extent.join(','));
-
-        const wmsSource = new ol.source.ImageStatic({
-            url: url.toString(),
-            imageExtent: extent,
-            projection: srs
+        // We use ImageWMS so that OpenLayers can dynamically recalculate BBOX and Size.
+        // This ensures the image is ALWAYS crisp, no matter how much you zoom in or pan.
+        const wmsSource = new ol.source.ImageWMS({
+            url: baseUrl,
+            params: {
+                'LAYERS': layerName,
+                'FORMAT': format,
+                'SRS': srs
+                // We purposefully omit WIDTH and HEIGHT here so OL dynamically assigns it based on screen pixels to stay crisp
+            },
+            ratio: 1, // Requests an image exactly the size of the viewport
+            serverType: 'geoserver'
         });
 
         const wmsLayer = new ol.layer.Image({
@@ -470,10 +464,14 @@ function runWMSQuery(baseUrl, layerNames) {
         addLayerToSwitcher(layerName, wmsLayer);
     });
 
-    document.getElementById('xml-summary').innerHTML = `<strong>Status:</strong> Added WMS Static Image Layers: [${layerNames.join(', ')}] with format ${format}, Size ${width}x${height}`;
+    document.getElementById('xml-summary').innerHTML = `<strong>Status:</strong> Added dynamic WMS Image Layers: [${layerNames.join(', ')}]. Map resolution is automatically controlling Image Size to prevent blurring.`;
 
-    // Fit map view to the requested BBOX to show the newly loaded static image
-    map.getView().fit(extent, { padding: [20, 20, 20, 20], duration: 800 });
+    // Only manually fit the map view if the user provided specific BBOX inputs
+    if (extent) {
+        try {
+            map.getView().fit(extent, { padding: [20, 20, 20, 20], duration: 800 });
+        } catch (e) { }
+    }
 }
 
 async function runWFSQuery(baseUrl, layerNames) {
