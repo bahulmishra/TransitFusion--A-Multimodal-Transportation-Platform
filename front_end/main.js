@@ -59,9 +59,9 @@ function setupEventListeners() {
     document.getElementById('btn-run-query').addEventListener('click', runQuery);
     document.getElementById('btn-clear-map').addEventListener('click', clearMap);
     const clearBtn = document.getElementById('btn-clear-xml');
-        if (clearBtn) {
-            clearBtn.addEventListener('click', clearXmlLog);
-        }
+    if (clearBtn) {
+        clearBtn.addEventListener('click', clearXmlLog);
+    }
 
     // Feature Click logic for Vector (WFS) and Image (WMS) Features
     map.on('singleclick', function (evt) {
@@ -424,19 +424,40 @@ function runQuery() {
 function runWMSQuery(baseUrl, layerNames) {
     const format = document.getElementById('param-format').value;
     const srs = document.getElementById('param-srs').value;
+    const width = document.getElementById('size-width').value || 768;
+    const height = document.getElementById('size-height').value || 500;
 
-    // Loop through requested layer names and create an individual OL Image layer for each
-    // This allows them to be individually toggled in the layer switcher box
+    let minx = parseFloat(document.getElementById('bbox-minx').value);
+    let miny = parseFloat(document.getElementById('bbox-miny').value);
+    let maxx = parseFloat(document.getElementById('bbox-maxx').value);
+    let maxy = parseFloat(document.getElementById('bbox-maxy').value);
+
+    let extent = undefined;
+    if (!isNaN(minx) && !isNaN(miny) && !isNaN(maxx) && !isNaN(maxy)) {
+        extent = [minx, miny, maxx, maxy];
+    } else {
+        // Fallback to a global extent if bbox is empty (though it should be autocompleted)
+        extent = [-180, -90, 180, 90];
+    }
+
     layerNames.forEach(layerName => {
-        const wmsSource = new ol.source.ImageWMS({
-            url: baseUrl,
-            params: {
-                'LAYERS': layerName,
-                'FORMAT': format,
-                'SRS': srs
-            },
-            ratio: 1,
-            serverType: 'geoserver' // Ensures vendor-params optimized for GeoServer
+        // Construct the exact GetMap URL to strictly honor the user's Size and BBox parameters
+        const url = new URL(baseUrl);
+        url.searchParams.set('SERVICE', 'WMS');
+        url.searchParams.set('VERSION', '1.1.1');
+        url.searchParams.set('REQUEST', 'GetMap');
+        url.searchParams.set('FORMAT', format);
+        url.searchParams.set('TRANSPARENT', 'true');
+        url.searchParams.set('LAYERS', layerName);
+        url.searchParams.set('SRS', srs);
+        url.searchParams.set('WIDTH', width);
+        url.searchParams.set('HEIGHT', height);
+        url.searchParams.set('BBOX', extent.join(','));
+
+        const wmsSource = new ol.source.ImageStatic({
+            url: url.toString(),
+            imageExtent: extent,
+            projection: srs
         });
 
         const wmsLayer = new ol.layer.Image({
@@ -449,7 +470,10 @@ function runWMSQuery(baseUrl, layerNames) {
         addLayerToSwitcher(layerName, wmsLayer);
     });
 
-    document.getElementById('xml-summary').innerHTML = `<strong>Status:</strong> Added WMS Image Layers: [${layerNames.join(', ')}] with format ${format}`;
+    document.getElementById('xml-summary').innerHTML = `<strong>Status:</strong> Added WMS Static Image Layers: [${layerNames.join(', ')}] with format ${format}, Size ${width}x${height}`;
+
+    // Fit map view to the requested BBOX to show the newly loaded static image
+    map.getView().fit(extent, { padding: [20, 20, 20, 20], duration: 800 });
 }
 
 async function runWFSQuery(baseUrl, layerNames) {
